@@ -238,7 +238,7 @@ class Parser:
         #     category = file.split('/')[-1].split('.')[0]
         #     print(category, len(catalog), counter, sep=' || ')
         #     counter += 1
-        for file in file_list[10:]:
+        for file in file_list:
             catalog = cls.open_json_by_full_path(file)
             category = file.split('/')[-1].split('.')[0]
             item_list = []
