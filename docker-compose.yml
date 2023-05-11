@@ -13,7 +13,7 @@ services:
       context: .
     env_file:
       - .env
-    container_name: first
+    container_name: second
     command: python3 item_parser.py 2
 
   third:
@@ -21,5 +21,5 @@ services:
       context: .
     env_file:
       - .env
-    container_name: first
+    container_name: third
     command: python3 item_parser.py 3
