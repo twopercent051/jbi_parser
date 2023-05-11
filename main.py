@@ -5,6 +5,7 @@ import os
 import time
 from datetime import datetime
 
+import aiohttp as aiohttp
 import requests
 
 from bs4 import BeautifulSoup
@@ -39,6 +40,19 @@ class Parser:
         req = session.get(url=url, headers=headers)
         req.encoding = 'utf-8'
         src = req.text
+        soup = BeautifulSoup(src, 'lxml')
+        return soup
+
+    @staticmethod
+    async def get_async_soup(url: str) -> BeautifulSoup:
+        useragent = UserAgent()
+        headers = {
+            "Accept": "*/*",
+            "User-Agent": useragent.random
+        }
+        async with aiohttp.ClientSession() as session:
+            async with session.post(url=url, headers=headers) as resp:
+                src = await resp.text()
         soup = BeautifulSoup(src, 'lxml')
         return soup
 
@@ -227,48 +241,73 @@ class Parser:
             cls.save_json(result_list, f'item_lists/{first_title}')
 
     @classmethod
+    def get_total_list(cls):
+        """Получение общего списка"""
+        path = f"{os.getcwd()}/data/item_lists/*.json"
+        file_list = glob.glob(path)
+        result_list = []
+        for file in file_list:
+            catalog = cls.open_json_by_full_path(file)
+            for item in catalog:
+                result_list.append(item)
+        cls.save_json(result_list, f'cards/total')
+
+    @classmethod
+    def division_items(cls):
+        """Разделение списка по 10к позиций"""
+        total_list = cls.open_json('cards/total')
+        item_counter = 0
+        file_counter = 0
+        file_list = []
+        for item in total_list:
+            item_counter += 1
+            file_list.append(item)
+            if item_counter % 10000 == 0 or item_counter == len(total_list):
+                file_counter += 1
+                cls.save_json(file_list, f'cards/file_{file_counter}')
+                file_list = []
+
+    @classmethod
     def get_item_info(cls):
         """Получение информации по карточке"""
         path = f"{os.getcwd()}/data/item_lists/*.json"
         file_list = glob.glob(path)
-        # print(file_list)
-        # counter = 0
-        # for file in file_list:
-        #     catalog = cls.open_json_by_full_path(file)
-        #     category = file.split('/')[-1].split('.')[0]
-        #     print(category, len(catalog), counter, sep=' || ')
-        #     counter += 1
+        print(file_list)
+        counter = 0
         for file in file_list:
             catalog = cls.open_json_by_full_path(file)
             category = file.split('/')[-1].split('.')[0]
-            item_list = []
-            for item in catalog:
-                try:
-                    title = item['title']
-                    print(category, title, sep=' || ')
-                    href = item['href']
-                    parent_1 = item['parent1']
-                    parent_2 = item['parent2']
-                    parent_3 = item['parent3']
-                    parent_4 = item['parent4']
-                    card = cls.get_soup_obj(href)
-                    parameters = card.find(class_='props').text.replace('Размеры:', '').strip()
-                    image = card.find(class_='pcard-images').find('a').get('href')
-                    item_dict = {
-                        'title': title,
-                        'href': href,
-                        'parent_1': parent_1,
-                        'parent_2': parent_2,
-                        'parent_3': parent_3,
-                        'parent_4': parent_4,
-                        'parameters': parameters,
-                        'image': image
-                    }
-                    item_list.append(item_dict)
-                except Exception as ex:
-                    logger.warning(f'Ошибка в категории {category} || {ex}')
-            cls.save_json(item_list, f'cards/{category}')
+            print(category, len(catalog), counter, sep=' || ')
+            counter += 1
+        # for file in file_list:
+        #     catalog = cls.open_json_by_full_path(file)
+        #     category = file.split('/')[-1].split('.')[0]
+        #     item_list = []
+        #     for item in catalog:
+        #         try:
+        #             title = item['title']
+        #             print(category, title, sep=' || ')
+        #             href = item['href']
+        #             parent_1 = item['parent1']
+        #             parent_2 = item['parent2']
+        #             parent_3 = item['parent3']
+        #             parent_4 = item['parent4']
+        #             card = cls.get_soup_obj(href)
+        #             parameters = card.find(class_='props').text.replace('Размеры:', '').strip()
+        #             image = card.find(class_='pcard-images').find('a').get('href')
+        #             item_dict = {
+        #                 'title': title,
+        #                 'href': href,
+        #                 'parent_1': parent_1,
+        #                 'parent_2': parent_2,
+        #                 'parent_3': parent_3,
+        #                 'parent_4': parent_4,
+        #                 'parameters': parameters,
+        #                 'image': image
+        #             }
+        #             item_list.append(item_dict)
+        #         except Exception as ex:
+        #             logger.warning(f'Ошибка в категории {category} || {ex}')
+        #     cls.save_json(item_list, f'cards/{category}')
 
 
-if __name__ == '__main__':
-    Parser.get_item_info()

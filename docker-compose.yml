@@ -1,0 +1,25 @@
+version: "3.7"
+services:
+  first:
+    build:
+      context: .
+    env_file:
+      - .env
+    container_name: first
+    command: python3 item_parser.py 1
+
+  second:
+    build:
+      context: .
+    env_file:
+      - .env
+    container_name: first
+    command: python3 item_parser.py 2
+
+  third:
+    build:
+      context: .
+    env_file:
+      - .env
+    container_name: first
+    command: python3 item_parser.py 3
