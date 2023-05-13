@@ -1,5 +1,5 @@
 from pydantic import BaseModel
-from sqlalchemy import MetaData, inspect, Column, String, insert
+from sqlalchemy import MetaData, inspect, Column, String, insert, select
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 from sqlalchemy.orm import sessionmaker, as_declarative
 
@@ -57,3 +57,10 @@ class JBIItemsDAO(JBIItems):
             stmt = insert(JBIItems).values(**data)
             await session.execute(stmt)
             await session.commit()
+
+    @classmethod
+    async def select_by_href(cls, href: str):
+        async with async_session_maker() as session:
+            query = select(JBIItems).filter_by(href=href)
+            result = await session.execute(query)
+            return result.scalar_one_or_none()

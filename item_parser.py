@@ -31,6 +31,9 @@ class ItemParser:
         for item in catalog:
             title = item['title']
             href = item['href']
+            is_saved = await JBIItemsDAO.select_by_href(href=href)
+            if is_saved:
+                continue
             parent_1 = item['parent1']
             parent_2 = item['parent2']
             parent_3 = item['parent3']
