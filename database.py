@@ -85,7 +85,7 @@ class JBIItemsDAO(JBIItems):
     async def select_not_saved(cls):
         async with async_session_maker() as session:
             # query = select(JBIItems.title, JBIItems.image).filter_by(is_saved=None).limit(1).with_for_update()
-            query = select(JBIItems.__table__.columns).filter_by(is_saved=None).limit(1).with_for_update()
+            query = select(JBIItems.__table__.columns).filter_by(is_saved=False).limit(1).with_for_update()
             image = await session.execute(query)
             result = image.mappings().one()
             stmt = update(JBIItems).values({'is_saved': True}).filter_by(image=result['image'])
