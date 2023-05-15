@@ -93,18 +93,21 @@ class ItemParser:
                 async with aiohttp.ClientSession() as session:
                     async with session.get(image_href) as resp:
                         if resp.status == 200:
-                            f = await aiofiles.open(f'{image_title}.jpg', mode='wb')
+                            f = await aiofiles.open(f'{os.getcwd()}/images/{image_title}.jpg', mode='wb')
                             await f.write(await resp.read())
                             await f.close()
                             counter += 1
                         else:
                             cls.telegram_message(f'Ошибка {resp.status} || {image_href} || Server {server_id}')
                             await JBIItemsDAO.add(title=image_title, image=image_href)
-                await cls.ftp_upload(image_title)
+                            await asyncio.sleep(10)
+                # await cls.ftp_upload(image_title)
                 if counter % 5000 == 0:
                     cls.telegram_message(f'<i>Server {server_id} saved {counter} items</i>')
             except Exception as ex:
-                cls.telegram_message(f'Ошибка || {image_href} || Server {server_id}')
+                await JBIItemsDAO.add(title=image_title, image=image_href)
+                cls.telegram_message(f'Ошибка || {image_href} || Server {server_id} || {ex}')
+                await asyncio.sleep(10)
 
 
 if __name__ == '__main__':
