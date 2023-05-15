@@ -37,7 +37,7 @@ class ItemParser:
         ftp.put(f"{file}.jpg", f"/root/jbi_images/{file}.jpg")
         ftp.close()
         ssh_client.close()
-        os.remove(f"{os.getcwd()}/{file}.jpg")
+        os.remove(f"{file}.jpg")
 
     @classmethod
     async def get_item_info(cls, server_id: int):
@@ -99,6 +99,7 @@ class ItemParser:
                             await f.write(await resp.read())
                             await f.close()
                             counter += 1
+                            print(image_title)
                             await asyncio.sleep(0.2)
                         else:
                             cls.telegram_message(f'Ошибка {resp.status} || {image_href} || Server {server_id}')
