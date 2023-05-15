@@ -2,8 +2,12 @@ import asyncio
 import os
 from sys import argv
 
+import aiohttp
+import aiofiles
+import paramiko
 import requests
 from sqlalchemy.exc import IntegrityError
+from transliterate import slugify
 
 from database import JBIItemsDAO
 from settings import settings
@@ -22,6 +26,18 @@ class ItemParser:
                 'parse_mode': 'HTML'
             }
         )
+
+    @staticmethod
+    async def ftp_upload(file: str):
+        """Загрузка файла на сервер и удаление с локальной машины"""
+        ssh_client = paramiko.SSHClient()
+        ssh_client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+        ssh_client.connect(hostname=settings.FTP_HOST, username=settings.FTP_USER, password=settings.FTP_PASS)
+        ftp = ssh_client.open_sftp()
+        ftp.put(f"{os.getcwd()}/{file}.jpg", f"/root/jbi_images/{file}.jpg")
+        ftp.close()
+        ssh_client.close()
+        os.remove(f"{os.getcwd()}/{file}.jpg")
 
     @classmethod
     async def get_item_info(cls, server_id: int):
@@ -62,8 +78,35 @@ class ItemParser:
             # if counter == len(catalog):
         cls.telegram_message(f'Server {server_id} finished')
 
+    @classmethod
+    async def get_image(cls, server_id: int):
+        """Загрузка изображений"""
+        counter = 0
+        while True:
+            image_data = await JBIItemsDAO.select_not_saved()
+            if image_data is None:
+                cls.telegram_message(f'Server {server_id} finished. Saved {counter} items')
+                break
+            image_title = slugify(image_data['title'])
+            image_href = image_data['image']
+            try:
+                async with aiohttp.ClientSession() as session:
+                    async with session.get(image_href) as resp:
+                        if resp.status == 200:
+                            f = await aiofiles.open(f'{image_title}.jpg', mode='wb')
+                            await f.write(await resp.read())
+                            await f.close()
+                            counter += 1
+                        else:
+                            cls.telegram_message(f'Ошибка {resp.status} || {image_href} || Server {server_id}')
+                            await JBIItemsDAO.add(title=image_title, image=image_href)
+                await cls.ftp_upload(image_title)
+                if counter % 5000 == 0:
+                    cls.telegram_message(f'<i>Server {server_id} saved {counter} items</i>')
+            except Exception as ex:
+                cls.telegram_message(f'Ошибка || {image_href} || Server {server_id}')
+
 
 if __name__ == '__main__':
     server = argv[1]
-    asyncio.run(ItemParser.get_item_info(server_id=server))
-    # ItemParser.telegram_message('1234')
+    asyncio.run(ItemParser.get_image(server_id=server))
