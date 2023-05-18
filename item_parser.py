@@ -114,6 +114,21 @@ class ItemParser:
                 await asyncio.sleep(10)
 
 
+class FindLostImages:
+
+    @classmethod
+    async def tranlite_title(cls):
+        count = 0
+        while True:
+            item = await JBIItemsDAO.select_not_translited()
+            if item is None:
+                break
+            count += 1
+            if count % 10 == 0:
+                print(f"Перевели {count} позиций")
+
+
 if __name__ == '__main__':
-    server = argv[1]
-    asyncio.run(ItemParser.get_image(server_id=server))
+    # server = argv[1]
+    # asyncio.run(ItemParser.get_image(server_id=server))
+    asyncio.run(FindLostImages.tranlite_title())
