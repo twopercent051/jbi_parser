@@ -122,10 +122,11 @@ class FindLostImages:
         while True:
             item = await JBIItemsDAO.select_not_translited()
             if item is None:
+                ItemParser.telegram_message("SERVER FINISHED")
                 break
             count += 1
-            if count % 10 == 0:
-                print(f"Перевели {count} позиций")
+            if count % 1000 == 0:
+                ItemParser.telegram_message(f"Перевели {count} позиций")
 
 
 if __name__ == '__main__':
