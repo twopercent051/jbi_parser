@@ -50,6 +50,7 @@ class JBIFails(Base):
 
     title = Column(String, nullable=False)
     image = Column(String, nullable=False, primary_key=True)
+    is_saved = Column(Boolean, nullable=False, server_default='false')
 
 
 class JBIItemsDAO(JBIItems):
@@ -69,18 +70,23 @@ class JBIItemsDAO(JBIItems):
             return result.scalar_one_or_none()
 
     @classmethod
-    async def select_not_translited(cls):
+    async def select_failed(cls):
         async with async_session_maker() as session:
-            # query = select(JBIItems.title, JBIItems.image).filter_by(is_saved=False).limit(1).with_for_update()
-            query = select(JBIItems.__table__.columns).filter_by(tranlited_title=None).limit(1).with_for_update()
-            title = await session.execute(query)
-            result = title.mappings().one_or_none()
+            query = select(JBIFails.__table__.columns).filter_by(is_saved=False).limit(1).with_for_update()
+            image = await session.execute(query)
+            result = image.mappings().one_or_none()
             if result:
-                tranlited_title = slugify(result['title'], language_code='ru')
-                stmt = update(JBIItems).values({'tranlited_title': tranlited_title}).filter_by(title=result['title'])
+                stmt = update(JBIFails).values(is_saved=True).filter_by(image=result['image'])
                 await session.execute(stmt)
                 await session.commit()
             return result
+
+    @classmethod
+    async def update_main(cls, image):
+        async with async_session_maker() as session:
+            stmt = update(JBIItems).values(is_saved=False).filter_by(image=image)
+            await session.execute(stmt)
+            await session.commit()
 
 
 # print(asyncio.run(JBIItemsDAO.select_not_saved()))
